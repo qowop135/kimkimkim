@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025년 D-Day 카운터</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(to bottom right, #EBF4FF, #E0E7FF);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1024px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header {
+            text-align: center;
+            padding: 48px 20px 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .name-title {
+            font-size: 1.875rem; /* 제목 크기의 절반 */
+            font-weight: bold;
+            margin: 0;
+            color: #1a202c;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-title {
+            font-size: 3.75rem;
+            font-weight: bold;
+            margin: 0;
+            color: #1a202c;
+        }
+
+        .card-subtitle {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-top: 1rem;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 10;
+            padding: 48px;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            padding: 2rem;
+        }
+
+        .time-box {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .time-value {
+            font-size: 3.75rem;
+            font-weight: bold;
+            color: #38B2AC;
+        }
+
+        .time-label {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-top: 1rem;
+        }
+
+        .snowflake {
+            position: absolute;
+            color: #ADD8E6;
+            pointer-events: none;
+            text-shadow: 0 0 5px rgba(173, 216, 230, 0.3);
+            user-select: none;
+        }
+
+        canvas {
+            border: 2px solid #90CDF4;
+            border-radius: 0.5rem;
+            touch-action: none;
+            background: rgba(255, 255, 255, 0.9);
+            max-width: 100%;
+        }
+
+        .game-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .game-instruction {
+            color: #4a5568;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .time-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .card-title {
+                font-size: 2.5rem;
+            }
+
+            .name-title {
+                font-size: 1.25rem;
+            }
+            
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div id="snowfall-container" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none;"></div>
+        <div class="card-header">
+            <h2 class="name-title">김태형씨의</h2>
+            <h1 class="card-title">2025년까지 남은 시간</h1>
+            <p class="card-subtitle" id="d-day"></p>
+        </div>
+        <div class="card-content">
+            <div class="time-grid">
+                <div class="time-box">
+                    <div class="time-value" id="days">00</div>
+                    <div class="time-label">일</div>
+                </div>
+                <div class="time-box">
+                    <div class="time-value" id="hours">00</div>
+                    <div class="time-label">시간</div>
+                </div>
+                <div class="time-box">
+                    <div class="time-value" id="minutes">00</div>
+                    <div class="time-label">분</div>
+                </div>
+                <div class="time-box">
+                    <div class="time-value" id="seconds">00</div>
+                    <div class="time-label">초</div>
+                </div>
+            </div>
+            <div class="game-container">
+                <canvas id="pongCanvas" width="800" height="400"></canvas>
+                <p class="game-instruction">마우스나 터치로 왼쪽 패들을 조작하세요</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Snowfall Effect
+        function createSnowflake() {
+            const snowflake = document.createElement('div');
+            snowflake.className = 'snowflake';
+            snowflake.textContent = '❅';
+            snowflake.style.left = Math.random() * 100 + '%';
+            snowflake.style.opacity = Math.random() * 0.7 + 0.3;
+            snowflake.style.fontSize = (Math.random() * 30 + 15) + 'px';
+            snowflake.style.animation = `fall ${Math.random() * 3 + 2}s linear`;
+            return snowflake;
+        }
+
+        const snowfallContainer = document.getElementById('snowfall-container');
+        
+        function addSnowflake() {
+            const snowflake = createSnowflake();
+            snowfallContainer.appendChild(snowflake);
+            snowflake.addEventListener('animationend', () => {
+                snowflake.remove();
+            });
+        }
+
+        setInterval(addSnowflake, 200);
+
+        // D-day Counter
+        function updateCounter() {
+            const targetDate = new Date('2025-01-01T00:00:00');
+            const now = new Date();
+            const distance = targetDate.getTime() - now.getTime();
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById('days').textContent = String(days).padStart(2, '0');
+            document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+            document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+            document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+            document.getElementById('d-day').textContent = `D-${days}`;
+        }
+
+        setInterval(updateCounter, 1000);
+        updateCounter();
+
+        // Pong Game
+        const canvas = document.getElementById('pongCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 10,
+            speed: 7,
+            dx: 5,
+            dy: 5
+        };
+
+        const paddle = {
+            width: 15,
+            height: 90,
+            playerY: canvas.height / 2 - 45,
+            aiY: canvas.height / 2 - 45,
+            speed: 8
+        };
+
+        const AI_DIFFICULTY = 0.7;
+
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const relativeY = e.clientY - rect.top;
+            paddle.playerY = Math.max(0, Math.min(canvas.height - paddle.height, relativeY - paddle.height / 2));
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const relativeY = touch.clientY - rect.top;
+            paddle.playerY = Math.max(0, Math.min(canvas.height - paddle.height, relativeY - paddle.height / 2));
+        }
+
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+        function moveAI() {
+            const ballCenter = ball.y;
+            const paddleCenter = paddle.aiY + paddle.height / 2;
+
+            if (Math.abs(ballCenter - paddleCenter) > paddle.speed) {
+                if (Math.random() < AI_DIFFICULTY) {
+                    if (ballCenter > paddleCenter) {
+                        paddle.aiY += paddle.speed;
+                    } else {
+                        paddle.aiY -= paddle.speed;
+                    }
+                }
+            }
+
+            paddle.aiY = Math.max(0, Math.min(canvas.height - paddle.height, paddle.aiY));
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speed = 7;
+            ball.dx = Math.random() > 0.5 ? 5 : -5;
+            ball.dy = Math.random() > 0.5 ? 5 : -5;
+        }
+
+        function detectCollision() {
+            if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+                ball.dy *= -1;
+            }
+
+            const checkPaddleCollision = (x, y) => {
+                return ball.y + ball.radius > y && 
+                       ball.y - ball.radius < y + paddle.height;
+            };
+
+            if (ball.x - ball.radius < paddle.width && 
+                checkPaddleCollision(paddle.width, paddle.playerY)) {
+                ball.dx = Math.abs(ball.dx);
+                ball.speed += 0.2;
+            }
+
+            if (ball.x + ball.radius > canvas.width - paddle.width && 
+                checkPaddleCollision(canvas.width - paddle.width, paddle.aiY)) {
+                ball.dx = -Math.abs(ball.dx);
+                ball.speed += 0.2;
+            }
+
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+                resetBall();
+            }
+        }
+
+        function render() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Center line
+            ctx.setLineDash([5, 15]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = '#87CEEB';
+            ctx.stroke();
+
+            // Paddles
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, paddle.playerY, paddle.width, paddle.height);
+            ctx.fillRect(canvas.width - paddle.width, paddle.aiY, paddle.width, paddle.height);
+
+            // Ball
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#87CEEB';
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#000000';
+            ctx.stroke();
+            ctx.closePath();
+
+            ball.x += ball.dx * (ball.speed / 7);
+            ball.y += ball.dy * (ball.speed / 7);
+
+            moveAI();
+            detectCollision();
+
+            requestAnimationFrame(render);
+        }
+
+        // Add snowfall animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fall {
+                0% {
+                    transform: translateY(-100px) rotate(0deg);
+                }
+                100% {
+                    transform: translateY(calc(100vh + 100px)) rotate(360deg);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Start the game
+        render();
+    </script>
+</body>
+</html>
